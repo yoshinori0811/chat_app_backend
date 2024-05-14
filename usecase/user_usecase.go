@@ -14,6 +14,7 @@ import (
 type IUserUsecase interface {
 	SignUp(user model.User) (model.UserResponse, error)
 	Login(user model.User) (string, error)
+	Logout(sessionID string) error
 }
 
 type userUsecase struct {
@@ -96,4 +97,12 @@ func (uu *userUsecase) Login(user model.User) (string, error) {
 	}
 
 	return sessionID.String(), nil
+}
+
+func (uu *userUsecase) Logout(sessionID string) error {
+	fmt.Println("sessionID: ", sessionID)
+	if err := uu.ur.DeleteSession(sessionID); err != nil {
+		return err
+	}
+	return nil
 }

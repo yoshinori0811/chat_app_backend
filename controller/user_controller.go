@@ -68,10 +68,11 @@ func (uc *UserController) SignUP(w http.ResponseWriter, r *http.Request) {
 
 // 〇TEST: ステータス200で返ること[正常系]
 // 〇TEST: cookieが生成されること[正常系]
+// 〇TEST: データベースから該当するセッションIDが格納されること[正常系]
 // 〇TEST: POST以外でリクエストされたら "Method not allowed" を返す[異常系]
 // 〇TEST: POSTデータのバインドに失敗したら "Bad request" を返す[異常系]
 // 〇TEST: ユーザー名、パスワードのいずれかが存在しない場合 "Bad request" を返す[異常系]
-// TEST: パスワードが異なる場合 "Internal server error" を返す[異常系]
+// 〇TEST: パスワードが異なる場合 "Internal server error" を返す[異常系]
 // 〇TEST: uc.uu.Login()でエラーが返ったら "Internal server error" を返す（sessionIDの生成失敗など）[異常系]
 func (uc *UserController) Login(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Star login request")
@@ -112,7 +113,7 @@ func (uc *UserController) Login(w http.ResponseWriter, r *http.Request) {
 	cookie.Expires = time.Now().Add(24 * time.Hour)
 	cookie.Path = "/"
 	cookie.Domain = config.Config.ServerDomain
-	// cookie.Secure = true
+	cookie.Secure = true
 	cookie.HttpOnly = true
 	cookie.SameSite = http.SameSiteNoneMode
 	http.SetCookie(w, cookie)
@@ -122,10 +123,24 @@ func (uc *UserController) Login(w http.ResponseWriter, r *http.Request) {
 
 // TEST: ステータスが200で返ること
 // TEST: cookieの有効期限が過ぎてること, 値が空文字であること
-// TEST: GET以外 "Method not allowed" を返す
+// 〇TEST: GET以外 "Method not allowed" を返す
 func (uc *UserController) Logout(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// リクエストからCookieを取得
+	cookies := r.Cookies()
+	// 取得したCookieを表示
+	for _, cookie := range cookies {
+		fmt.Printf("Name: %s, Value: %s\n", cookie.Name, cookie.Value)
+	}
+
+	sessionID, err := r.Cookie("session")
+	if err != nil {
+		fmt.Println(err)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -134,9 +149,14 @@ func (uc *UserController) Logout(w http.ResponseWriter, r *http.Request) {
 	cookie.Value = ""
 	cookie.Expires = time.Now()
 	cookie.Path = "/"
-	// cookie.Secure = true
+	cookie.Secure = true
 	cookie.HttpOnly = true
 	cookie.SameSite = http.SameSiteNoneMode
 	http.SetCookie(w, cookie)
-	w.WriteHeader(http.StatusOK)
+
+	if err := uc.uu.Logout(sessionID.Value); err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	} else {
+		w.WriteHeader(http.StatusOK)
+	}
 }
