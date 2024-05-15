@@ -1,9 +1,9 @@
 package usecase
 
 import (
-	"encoding/base64"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/yoshinori0811/chat_app/model"
@@ -14,15 +14,19 @@ import (
 type IUserUsecase interface {
 	SignUp(user model.User) (model.UserResponse, error)
 	Login(user model.User) (string, error)
-	Logout(sessionID string) error
+	Logout(sessionToken string) error
 }
 
 type userUsecase struct {
 	ur repository.IUserRepository
+	sr repository.ISessionRepository
 }
 
-func NewUserUsecase(ur repository.IUserRepository) IUserUsecase {
-	return &userUsecase{ur}
+func NewUserUsecase(ur repository.IUserRepository, sr repository.ISessionRepository) IUserUsecase {
+	return &userUsecase{
+		ur,
+		sr,
+	}
 }
 
 func (uu *userUsecase) SignUp(user model.User) (model.UserResponse, error) {
@@ -56,11 +60,10 @@ func (uu *userUsecase) SignUp(user model.User) (model.UserResponse, error) {
 		return model.UserResponse{}, err
 	}
 	resUser := model.UserResponse{
-		ID:        newUser.ID,
-		UUID:      newUser.UUID,
-		Name:      newUser.Name,
-		Email:     newUser.Email,
-		SessionID: newUser.SessionID,
+		ID:    newUser.ID,
+		UUID:  newUser.UUID,
+		Name:  newUser.Name,
+		Email: newUser.Email,
 	}
 	fmt.Println("created record: ", newUser)
 	return resUser, nil
@@ -74,34 +77,32 @@ func (uu *userUsecase) Login(user model.User) (string, error) {
 		return "", err
 	}
 	// パスワード検証
-	hash, _ := bcrypt.GenerateFromPassword([]byte(user.Password), 10)
-	encodedHash := base64.StdEncoding.EncodeToString(hash)
-	fmt.Println("hash: ", encodedHash)
-	fmt.Println("stored hash: ", storedUser.Password)
-	fmt.Println("stored user: ", storedUser)
-
 	err := bcrypt.CompareHashAndPassword([]byte(storedUser.Password), []byte(user.Password))
 	if err != nil {
 		fmt.Println(err)
 		return "", err
 	}
 	// セッションの生成、保存
-	sessionID, err := uuid.NewRandom()
+	sessionToken, err := uuid.NewRandom()
 	if err != nil {
 		fmt.Println(err)
 		return "", err
 	}
-	if err := uu.ur.UpdateSession(&user, sessionID.String()); err != nil {
+	newSession := model.Session{
+		SessionToken: sessionToken.String(),
+		ExpiredAt:    time.Now().AddDate(0, 0, 1),
+	}
+	if err := uu.sr.CreateSession(&newSession, storedUser.ID); err != nil {
 		fmt.Println(err)
 		return "", err
 	}
 
-	return sessionID.String(), nil
+	return newSession.SessionToken, nil
 }
 
 func (uu *userUsecase) Logout(sessionID string) error {
 	fmt.Println("sessionID: ", sessionID)
-	if err := uu.ur.DeleteSession(sessionID); err != nil {
+	if err := uu.sr.DeleteSession(sessionID); err != nil {
 		return err
 	}
 	return nil

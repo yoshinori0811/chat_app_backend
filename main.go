@@ -15,7 +15,8 @@ import (
 func main() {
 	db := db.NewDB()
 	userRepository := repository.NewUserRepository(db)
-	userUsecase := usecase.NewUserUsecase(userRepository)
+	sessionRepository := repository.NewSessionRepository(db)
+	userUsecase := usecase.NewUserUsecase(userRepository, sessionRepository)
 	userController := controller.NewUserController(userUsecase)
 
 	router.NewRouter(userController)

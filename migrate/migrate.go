@@ -10,6 +10,6 @@ import (
 func main() {
 	dbCon := db.NewDB()
 	defer db.CloseDB(dbCon)
-	dbCon.AutoMigrate(&model.User{})
+	dbCon.AutoMigrate(&model.User{}, &model.Session{})
 	fmt.Println("Successfully Migrated")
 }

@@ -10,8 +10,6 @@ import (
 type IUserRepository interface {
 	CreateUser(user *model.User) error
 	GetUserByEmail(user *model.User, email string) error
-	UpdateSession(user *model.User, sessionID string) error
-	DeleteSession(sessionID string) error
 }
 
 type UserRepository struct {
@@ -39,23 +37,6 @@ func (ur UserRepository) GetUserByEmail(user *model.User, email string) error {
 			*user = model.User{}
 			return nil
 		}
-		return err
-	}
-	return nil
-}
-
-func (ur UserRepository) UpdateSession(user *model.User, sessionID string) error {
-	sql := `UPDATE users SET session_id = ? WHERE email = ?`
-	if err := ur.db.Raw(sql, sessionID, user.Email).Scan(&user).Error; err != nil {
-		return err
-	}
-	return nil
-}
-
-func (ur UserRepository) DeleteSession(sessionID string) error {
-	user := model.User{}
-	sql := `UPDATE users SET session_id = "" WHERE session_id = ?`
-	if err := ur.db.Raw(sql, sessionID).Scan(&user).Error; err != nil {
 		return err
 	}
 	return nil
