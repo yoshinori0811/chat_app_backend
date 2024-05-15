@@ -11,6 +11,7 @@ type User struct {
 	Session   []Session `json:"session" gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE,OnUpdate:CASCADE;"`
 	CreatedAt time.Time `json:"created_at" gorm:"type:datetime(3);not null;default:CURRENT_TIMESTAMP(3);"`
 	UpdatedAt time.Time `json:"updated_at" gorm:"type:datetime(3);not null;default:CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3);"`
+	DeletedAt time.Time `json:"deleted_at"`
 }
 
 type UserSignUpRequest struct {
