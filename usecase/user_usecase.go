@@ -13,7 +13,7 @@ import (
 
 type IUserUsecase interface {
 	SignUp(user model.User) (model.UserResponse, error)
-	Login(user model.User) (string, error)
+	Login(user model.User) (model.Session, error)
 	Logout(sessionToken string) error
 }
 
@@ -36,8 +36,6 @@ func (uu *userUsecase) SignUp(user model.User) (model.UserResponse, error) {
 		return model.UserResponse{}, err
 	}
 	if storedUser.Email == user.Email || storedUser.Name == user.Name {
-		fmt.Println("storedUser: ", &storedUser)
-		fmt.Println("user: ", &user)
 		err := errors.New("email or name already exists")
 		fmt.Println(err)
 		return model.UserResponse{}, err
@@ -69,40 +67,39 @@ func (uu *userUsecase) SignUp(user model.User) (model.UserResponse, error) {
 	return resUser, nil
 }
 
-func (uu *userUsecase) Login(user model.User) (string, error) {
+func (uu *userUsecase) Login(user model.User) (model.Session, error) {
 	storedUser := model.User{}
-	fmt.Println(user.Email)
 	if err := uu.ur.GetUserByEmail(&storedUser, user.Email); err != nil {
 		fmt.Println(err)
-		return "", err
+		return model.Session{}, err
 	}
 	// パスワード検証
 	err := bcrypt.CompareHashAndPassword([]byte(storedUser.Password), []byte(user.Password))
 	if err != nil {
 		fmt.Println(err)
-		return "", err
+		return model.Session{}, err
 	}
 	// セッションの生成、保存
 	sessionToken, err := uuid.NewRandom()
 	if err != nil {
 		fmt.Println(err)
-		return "", err
+		return model.Session{}, err
 	}
 	newSession := model.Session{
 		SessionToken: sessionToken.String(),
-		ExpiredAt:    time.Now().AddDate(0, 0, 1),
+		ExpiredAt:    time.Now().Add(24 * time.Hour),
 	}
 	if err := uu.sr.CreateSession(&newSession, storedUser.ID); err != nil {
 		fmt.Println(err)
-		return "", err
+		return model.Session{}, err
 	}
 
-	return newSession.SessionToken, nil
+	return newSession, nil
 }
 
 func (uu *userUsecase) Logout(sessionID string) error {
-	fmt.Println("sessionID: ", sessionID)
 	if err := uu.sr.DeleteSession(sessionID); err != nil {
+		fmt.Println(err)
 		return err
 	}
 	return nil

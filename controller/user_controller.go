@@ -26,11 +26,11 @@ func NewUserController(uu usecase.IUserUsecase) IUserController {
 	return &UserController{uu}
 }
 
-// 〇TEST: POST以外の場合、"Method not allowed" が返ること
-// 〇TEST: Content-typeが異なる場合、"Bad request"を返すこと
-// 〇TEST: ユーザー名、メールアドレス、パスワードのいずれかがゼロ値の場合、"Bad request" を返すこと（レコードが作成されないこと）
-// 〇TEST: すでに存在するユーザー名もしくはメールアドレスを受け取ったら"Internal server error" を返すこと（レコードが作成されないこと）
-// 〇TEST: ステータスが201で返り、ユーザー名、メールアドレス、パスワード等が返ること
+// 〇TEST: ステータスが201で返り、ユーザー名、メールアドレス、パスワード等が返ること[正常系]
+// 〇TEST: POST以外の場合、"Method not allowed" が返ること[異常系]
+// 〇TEST: Content-typeが異なる場合、"Bad request"を返すこと[異常系]
+// 〇TEST: ユーザー名、メールアドレス、パスワードのいずれかがゼロ値の場合、"Bad request" を返すこと（レコードが作成されないこと）[異常系]
+// 〇TEST: すでに存在するユーザー名もしくはメールアドレスを受け取ったら"Internal server error" を返すこと（レコードが作成されないこと）[異常系]
 func (uc *UserController) SignUP(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Star signup request")
 	if r.Method != http.MethodPost {
@@ -56,7 +56,7 @@ func (uc *UserController) SignUP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userRes, err := uc.uu.SignUp(user)
-	// CAUTION: エラーの内容によって条件分岐したい
+	// MEMO: エラーの内容によって条件分岐したい
 	if err != nil {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
@@ -87,8 +87,6 @@ func (uc *UserController) Login(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
-
-	fmt.Println("userReq", userReq)
 	if userReq.Email == "" || userReq.Password == "" {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
@@ -98,10 +96,7 @@ func (uc *UserController) Login(w http.ResponseWriter, r *http.Request) {
 		Email:    userReq.Email,
 		Password: userReq.Password,
 	}
-
-	fmt.Println("user", user)
-
-	sessionID, err := uc.uu.Login(user)
+	session, err := uc.uu.Login(user)
 	if err != nil {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
@@ -109,8 +104,8 @@ func (uc *UserController) Login(w http.ResponseWriter, r *http.Request) {
 
 	cookie := new(http.Cookie)
 	cookie.Name = "session"
-	cookie.Value = sessionID
-	cookie.Expires = time.Now().Add(24 * time.Hour)
+	cookie.Value = session.SessionToken
+	cookie.Expires = session.ExpiredAt
 	cookie.Path = "/"
 	cookie.Domain = config.Config.ServerDomain
 	cookie.Secure = true
@@ -121,9 +116,9 @@ func (uc *UserController) Login(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// TEST: ステータスが200で返ること
-// TEST: cookieの有効期限が過ぎてること, 値が空文字であること
-// 〇TEST: GET以外 "Method not allowed" を返す
+// 〇TEST: ステータスが200で返ること[正常系]
+// 〇TEST: cookieの有効期限が過ぎてること, 値が空文字であること[正常系]
+// 〇TEST: GET以外 "Method not allowed" を返す[異常系]
 func (uc *UserController) Logout(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
