@@ -15,14 +15,15 @@ type IUserUsecase interface {
 	SignUp(user model.User) (model.UserResponse, error)
 	Login(user model.User) (model.Session, error)
 	Logout(sessionToken string) error
+	isEmailExists(email string) error
 }
 
 type userUsecase struct {
-	ur repository.IUserRepository
-	sr repository.ISessionRepository
+	ur repository.UserRepositoryInterface
+	sr repository.SessionRepositoryInterface
 }
 
-func NewUserUsecase(ur repository.IUserRepository, sr repository.ISessionRepository) IUserUsecase {
+func NewUserUsecase(ur repository.UserRepositoryInterface, sr repository.SessionRepositoryInterface) IUserUsecase {
 	return &userUsecase{
 		ur,
 		sr,
@@ -30,13 +31,7 @@ func NewUserUsecase(ur repository.IUserRepository, sr repository.ISessionReposit
 }
 
 func (uu *userUsecase) SignUp(user model.User) (model.UserResponse, error) {
-	storedUser := model.User{}
-	if err := uu.ur.GetUserByEmail(&storedUser, user.Email); err != nil {
-		fmt.Println(err)
-		return model.UserResponse{}, err
-	}
-	if storedUser.Email == user.Email || storedUser.Name == user.Name {
-		err := errors.New("email or name already exists")
+	if err := uu.isEmailExists(user.Email); err != nil {
 		fmt.Println(err)
 		return model.UserResponse{}, err
 	}
@@ -53,7 +48,7 @@ func (uu *userUsecase) SignUp(user model.User) (model.UserResponse, error) {
 		return model.UserResponse{}, err
 	}
 	newUser := model.User{UUID: uuid.String(), Name: user.Name, Email: user.Email, Password: string(hash)}
-	if err := uu.ur.CreateUser(&newUser); err != nil {
+	if err := uu.ur.InsertUser(&newUser); err != nil {
 		fmt.Println(err)
 		return model.UserResponse{}, err
 	}
@@ -89,7 +84,7 @@ func (uu *userUsecase) Login(user model.User) (model.Session, error) {
 		SessionToken: sessionToken.String(),
 		ExpiredAt:    time.Now().Add(24 * time.Hour),
 	}
-	if err := uu.sr.CreateSession(&newSession, storedUser.ID); err != nil {
+	if err := uu.sr.InsertSession(&newSession, storedUser.ID); err != nil {
 		fmt.Println(err)
 		return model.Session{}, err
 	}
@@ -100,6 +95,20 @@ func (uu *userUsecase) Login(user model.User) (model.Session, error) {
 func (uu *userUsecase) Logout(sessionID string) error {
 	if err := uu.sr.DeleteSession(sessionID); err != nil {
 		fmt.Println(err)
+		return err
+	}
+	return nil
+}
+
+func (uu userUsecase) isEmailExists(email string) error {
+	// storedUser := model.User{}
+	isUser, err := uu.ur.ExistsUserByEmail(email)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	if isUser == true {
+		err := errors.New("email already exists")
 		return err
 	}
 	return nil

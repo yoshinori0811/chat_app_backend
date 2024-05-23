@@ -5,8 +5,8 @@ import (
 	"gorm.io/gorm"
 )
 
-type ISessionRepository interface {
-	CreateSession(session *model.Session, userID uint) error
+type SessionRepositoryInterface interface {
+	InsertSession(session *model.Session, userID uint) error
 	// UpdateSession() error
 	DeleteSession(sessionToken string) error
 }
@@ -15,11 +15,11 @@ type SessionRepository struct {
 	db *gorm.DB
 }
 
-func NewSessionRepository(db *gorm.DB) ISessionRepository {
+func NewSessionRepository(db *gorm.DB) SessionRepositoryInterface {
 	return &SessionRepository{db}
 }
 
-func (sr SessionRepository) CreateSession(session *model.Session, userID uint) error {
+func (sr SessionRepository) InsertSession(session *model.Session, userID uint) error {
 	sql := `INSERT INTO sessions (user_id, session_token, expired_at) VALUES (?, ?, ?)`
 	if err := sr.db.Exec(sql, userID, session.SessionToken, session.ExpiredAt).Error; err != nil {
 		return err

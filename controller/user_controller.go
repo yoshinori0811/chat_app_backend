@@ -13,7 +13,7 @@ import (
 
 type IUserController interface {
 	// UserControllerのメソッドを記載
-	SignUP(w http.ResponseWriter, r *http.Request)
+	SignUp(w http.ResponseWriter, r *http.Request)
 	Login(w http.ResponseWriter, r *http.Request)
 	Logout(w http.ResponseWriter, r *http.Request)
 }
@@ -31,16 +31,13 @@ func NewUserController(uu usecase.IUserUsecase) IUserController {
 // 〇TEST: Content-typeが異なる場合、"Bad request"を返すこと[異常系]
 // 〇TEST: ユーザー名、メールアドレス、パスワードのいずれかがゼロ値の場合、"Bad request" を返すこと（レコードが作成されないこと）[異常系]
 // 〇TEST: すでに存在するユーザー名もしくはメールアドレスを受け取ったら"Internal server error" を返すこと（レコードが作成されないこと）[異常系]
-func (uc *UserController) SignUP(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Star signup request")
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+func (uc *UserController) SignUp(w http.ResponseWriter, r *http.Request) {
+	if !checkPOSTMethod(w, r) {
 		return
 	}
 
-	var userReq model.UserSignUpRequest
-	if err := json.NewDecoder(r.Body).Decode(&userReq); err != nil {
-		http.Error(w, "Bad request", http.StatusBadRequest)
+	userReq, err := bindJSON[model.UserSignUpRequest](w, r)
+	if err != nil {
 		return
 	}
 	fmt.Println(userReq)
@@ -75,16 +72,12 @@ func (uc *UserController) SignUP(w http.ResponseWriter, r *http.Request) {
 // 〇TEST: パスワードが異なる場合 "Internal server error" を返す[異常系]
 // 〇TEST: uc.uu.Login()でエラーが返ったら "Internal server error" を返す（sessionIDの生成失敗など）[異常系]
 func (uc *UserController) Login(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Star login request")
-
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	if !checkPOSTMethod(w, r) {
 		return
 	}
-	// POSTデータのバインド
-	var userReq model.UserLoginRequest
-	if err := json.NewDecoder(r.Body).Decode(&userReq); err != nil {
-		http.Error(w, "Bad request", http.StatusBadRequest)
+
+	userReq, err := bindJSON[model.UserLoginRequest](w, r)
+	if err != nil {
 		return
 	}
 	if userReq.Email == "" || userReq.Password == "" {
@@ -120,8 +113,7 @@ func (uc *UserController) Login(w http.ResponseWriter, r *http.Request) {
 // 〇TEST: cookieの有効期限が過ぎてること, 値が空文字であること[正常系]
 // 〇TEST: GET以外 "Method not allowed" を返す[異常系]
 func (uc *UserController) Logout(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	if !checkPOSTMethod(w, r) {
 		return
 	}
 
@@ -154,4 +146,21 @@ func (uc *UserController) Logout(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w.WriteHeader(http.StatusOK)
 	}
+}
+
+func checkPOSTMethod(w http.ResponseWriter, r *http.Request) bool {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return false
+	}
+	return true
+}
+
+func bindJSON[T any](w http.ResponseWriter, r *http.Request) (*T, error) {
+	var data T
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return nil, err
+	}
+	return &data, nil
 }

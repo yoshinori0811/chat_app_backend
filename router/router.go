@@ -8,9 +8,7 @@ import (
 )
 
 func NewRouter(uc controller.IUserController) {
-	// ハンドラを登録？
-	// TODO: corsMiddlewareを呼び出す
-	http.HandleFunc("/signup", corsMiddleware(uc.SignUP))
+	http.HandleFunc("/signup", corsMiddleware(uc.SignUp))
 	http.HandleFunc("/login", corsMiddleware(uc.Login))
 	http.HandleFunc("/logout", corsMiddleware(uc.Logout))
 }
