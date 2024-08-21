@@ -12,3 +12,9 @@ type Session struct {
 	UpdatedAt    time.Time `json:"updated_at" gorm:"type:datetime(3);not null;default:CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3);"`
 	DeletedAt    time.Time `json:"deleted_at"`
 }
+
+type ContextKey string
+
+const (
+	UserIDContextKey = ContextKey("UserID")
+)

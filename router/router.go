@@ -3,27 +3,72 @@ package router
 import (
 	"net/http"
 
-	"github.com/yoshinori0811/chat_app/config"
 	"github.com/yoshinori0811/chat_app/controller"
+	"github.com/yoshinori0811/chat_app/middleware"
 )
 
-func NewRouter(uc controller.IUserController) {
-	http.HandleFunc("/signup", corsMiddleware(uc.SignUp))
-	http.HandleFunc("/login", corsMiddleware(uc.Login))
-	http.HandleFunc("/logout", corsMiddleware(uc.Logout))
-}
+func NewRouter(m middleware.MiddlewareInterface, uc controller.UserControllerInterface, fc controller.FriendControllerInterface, rc controller.RoomControllerInterface) {
+	http.HandleFunc("/signup", m.CorsMiddleware(&middleware.MethodHandler{
+		Post: uc.SignUp,
+	}))
+	http.HandleFunc("/login", m.CorsMiddleware(&middleware.MethodHandler{
+		Post: uc.Login,
+	}))
+	http.HandleFunc("/logout", m.CorsMiddleware(&middleware.MethodHandler{
+		Post: uc.Logout,
+	}))
+	http.HandleFunc("/user", m.CorsMiddleware(m.AuthMiddleware(&middleware.MethodHandler{
+		Get: uc.GetUser,
+	})))
+	http.HandleFunc("/users", m.CorsMiddleware(m.AuthMiddleware(&middleware.MethodHandler{
+		Get: uc.SearchUsers,
+	})))
+	http.HandleFunc("/dmlist", m.CorsMiddleware(m.AuthMiddleware(&middleware.MethodHandler{
+		Get: fc.GetDmList,
+	})))
+	http.HandleFunc("/friends", m.CorsMiddleware(m.AuthMiddleware(&middleware.MethodHandler{
+		Get: fc.GetFriends,
+	})))
+	http.HandleFunc("/friends/requests", m.CorsMiddleware(m.AuthMiddleware(&middleware.MethodHandler{
+		Get:  fc.GetFriendRequestList,
+		Post: fc.SendFriendRequest,
+	})))
+	http.HandleFunc("/friends/requests/accept", m.CorsMiddleware(m.AuthMiddleware(&middleware.MethodHandler{
+		Put: fc.AcceptFriendRequest,
+	})))
+	http.HandleFunc("/friends/requests/reject", m.CorsMiddleware(m.AuthMiddleware(&middleware.MethodHandler{
+		Put: fc.RejectFriendRequest,
+	})))
 
-func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", config.Config.FEUrl)
-		w.Header().Set("Access-Control-Allow-Headers", "Origin,Content-Type,X-CSRF-Header,Accept,Access-Control-AllowHeaders,")
-		w.Header().Set("Access-Control-Allow-Credentials", "true")
-		w.Header().Set("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE")
+	http.HandleFunc("/rooms/create", m.CorsMiddleware(m.AuthMiddleware(&middleware.MethodHandler{
+		Post: rc.CreateRoom,
+	})))
 
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
+	http.HandleFunc("/rooms/", m.CorsMiddleware(m.AuthMiddleware(&middleware.MethodHandler{
+		Get: rc.GetRooms,
+	})))
+
+	http.HandleFunc("/rooms/{roomUUID}/", m.CorsMiddleware(m.AuthMiddleware(&middleware.MethodHandler{
+		Get:  rc.GetRoomChat,
+		Post: rc.CreateMessage,
+	})))
+
+	http.HandleFunc("/rooms/{roomUUID}/messages/{messageUUID}/", m.CorsMiddleware(m.AuthMiddleware(&middleware.MethodHandler{
+		Patch:  rc.UpdateMessage,
+		Delete: rc.DeleteMessage,
+	})))
+	http.HandleFunc("/rooms/{roomUUID}/invite", m.CorsMiddleware(m.AuthMiddleware(&middleware.MethodHandler{
+		Post: rc.InviteRoom,
+	})))
+	http.HandleFunc("/rooms/{roomUUID}/delete", m.CorsMiddleware(m.AuthMiddleware(&middleware.MethodHandler{
+		Delete: rc.DeleteRoom,
+	})))
+	http.HandleFunc("/rooms/{roomUUID}/leave", m.CorsMiddleware(m.AuthMiddleware(&middleware.MethodHandler{
+		Delete: rc.LeaveRoom,
+	})))
+
+	// http.HandleFunc("/ws/rooms/{roomUUID}", m.WebsocketAllowHeaderMiddleware(m.AuthMiddleware(&middleware.MethodHandler{
+	// 	Get: rc.BroadcastMessage,
+	// })))
+
 }

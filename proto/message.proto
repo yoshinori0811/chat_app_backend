@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+option go_package = "/pb";
+
+package proto;
+
+service MessageService {
+	rpc GetMessages (GetMessageRequest) returns (GetMessagesResponse);
+	rpc Connect (ConnectRequest) returns (stream MessageResponse){};
+}
+
+message GetMessageRequest {
+	string uuid = 1;
+	uint32 offset = 2;
+}
+
+message GetMessagesResponse {
+	repeated MessageInfo messages = 1;
+}
+
+
+message ConnectRequest {
+	string uuid = 1;
+}
+
+message MessageResponse {
+	string type = 1;
+	MessageInfo message_info = 2;
+}
+
+message MessageInfo {
+	uint32 id = 1;
+	string uuid = 2;
+	string content = 3;
+	string timestamp = 4;
+	UserInfo user = 5;
+}
+
+message UserInfo {
+	string name = 1;
+}

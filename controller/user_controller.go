@@ -6,38 +6,40 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gorilla/schema"
+
 	"github.com/yoshinori0811/chat_app/config"
 	"github.com/yoshinori0811/chat_app/model"
 	"github.com/yoshinori0811/chat_app/usecase"
 )
 
-type IUserController interface {
-	// UserControllerのメソッドを記載
+type UserControllerInterface interface {
 	SignUp(w http.ResponseWriter, r *http.Request)
 	Login(w http.ResponseWriter, r *http.Request)
 	Logout(w http.ResponseWriter, r *http.Request)
+	SearchUsers(w http.ResponseWriter, r *http.Request)
+	GetUser(w http.ResponseWriter, r *http.Request)
 }
 
 type UserController struct {
-	uu usecase.IUserUsecase
+	uu usecase.UserUsecaseInterface
+	fu usecase.FriendUsecaseInterface
 }
 
-func NewUserController(uu usecase.IUserUsecase) IUserController {
-	return &UserController{uu}
+func NewUserController(uu usecase.UserUsecaseInterface, fu usecase.FriendUsecaseInterface) UserControllerInterface {
+	return &UserController{uu, fu}
 }
 
-// 〇TEST: ステータスが201で返り、ユーザー名、メールアドレス、パスワード等が返ること[正常系]
-// 〇TEST: POST以外の場合、"Method not allowed" が返ること[異常系]
-// 〇TEST: Content-typeが異なる場合、"Bad request"を返すこと[異常系]
-// 〇TEST: ユーザー名、メールアドレス、パスワードのいずれかがゼロ値の場合、"Bad request" を返すこと（レコードが作成されないこと）[異常系]
-// 〇TEST: すでに存在するユーザー名もしくはメールアドレスを受け取ったら"Internal server error" を返すこと（レコードが作成されないこと）[異常系]
+var decoder = schema.NewDecoder()
+
 func (uc *UserController) SignUp(w http.ResponseWriter, r *http.Request) {
-	if !checkPOSTMethod(w, r) {
-		return
-	}
+	// if !checkPOSTMethod(w, r) {
+	// 	return
+	// }
 
 	userReq, err := bindJSON[model.UserSignUpRequest](w, r)
 	if err != nil {
+		fmt.Println(err)
 		return
 	}
 	fmt.Println(userReq)
@@ -53,8 +55,8 @@ func (uc *UserController) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userRes, err := uc.uu.SignUp(user)
-	// MEMO: エラーの内容によって条件分岐したい
 	if err != nil {
+		fmt.Println(err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -63,21 +65,14 @@ func (uc *UserController) SignUp(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(userRes)
 }
 
-// 〇TEST: ステータス200で返ること[正常系]
-// 〇TEST: cookieが生成されること[正常系]
-// 〇TEST: データベースから該当するセッションIDが格納されること[正常系]
-// 〇TEST: POST以外でリクエストされたら "Method not allowed" を返す[異常系]
-// 〇TEST: POSTデータのバインドに失敗したら "Bad request" を返す[異常系]
-// 〇TEST: ユーザー名、パスワードのいずれかが存在しない場合 "Bad request" を返す[異常系]
-// 〇TEST: パスワードが異なる場合 "Internal server error" を返す[異常系]
-// 〇TEST: uc.uu.Login()でエラーが返ったら "Internal server error" を返す（sessionIDの生成失敗など）[異常系]
 func (uc *UserController) Login(w http.ResponseWriter, r *http.Request) {
-	if !checkPOSTMethod(w, r) {
-		return
-	}
+	// if !checkPOSTMethod(w, r) {
+	// 	return
+	// }
 
 	userReq, err := bindJSON[model.UserLoginRequest](w, r)
 	if err != nil {
+		fmt.Println(err)
 		return
 	}
 	if userReq.Email == "" || userReq.Password == "" {
@@ -91,6 +86,7 @@ func (uc *UserController) Login(w http.ResponseWriter, r *http.Request) {
 	}
 	session, err := uc.uu.Login(user)
 	if err != nil {
+		fmt.Println(err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -109,13 +105,10 @@ func (uc *UserController) Login(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// 〇TEST: ステータスが200で返ること[正常系]
-// 〇TEST: cookieの有効期限が過ぎてること, 値が空文字であること[正常系]
-// 〇TEST: GET以外 "Method not allowed" を返す[異常系]
 func (uc *UserController) Logout(w http.ResponseWriter, r *http.Request) {
-	if !checkPOSTMethod(w, r) {
-		return
-	}
+	// if !checkPOSTMethod(w, r) {
+	// 	return
+	// }
 
 	// リクエストからCookieを取得
 	cookies := r.Cookies()
@@ -148,17 +141,69 @@ func (uc *UserController) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func checkPOSTMethod(w http.ResponseWriter, r *http.Request) bool {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return false
+func (uc *UserController) GetUser(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value(model.UserIDContextKey).(uint)
+	res, err := uc.uu.GetUser(userID)
+	if err != nil {
+		fmt.Println(err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
 	}
-	return true
+	fmt.Println("ユーザー取得ロジック")
+	json.NewEncoder(w).Encode(res)
 }
+
+func (uc *UserController) SearchUsers(w http.ResponseWriter, r *http.Request) {
+	// GETデータのバインド
+	userReq, err := bindQueryParams[model.UserSearchRequest](w, r)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println("throw bindQueryParams")
+
+	userID := r.Context().Value(model.UserIDContextKey).(uint)
+	res, err := uc.uu.SearchUsers(userReq.Query, userID)
+	if err != nil {
+		fmt.Println(err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(res)
+}
+
+// func checkPOSTMethod(w http.ResponseWriter, r *http.Request) bool {
+// 	if r.Method != http.MethodPost {
+// 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+// 		return false
+// 	}
+// 	return true
+// }
+
+// func checkGETMethod(w http.ResponseWriter, r *http.Request) bool {
+// 	if r.Method != http.MethodGet {
+// 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+// 		return false
+// 	}
+// 	return true
+// }
 
 func bindJSON[T any](w http.ResponseWriter, r *http.Request) (*T, error) {
 	var data T
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		fmt.Println(err)
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return nil, err
+	}
+	return &data, nil
+}
+
+func bindQueryParams[T any](w http.ResponseWriter, r *http.Request) (*T, error) {
+	var data T
+	if err := decoder.Decode(&data, r.URL.Query()); err != nil {
+		fmt.Println(err)
+		fmt.Println("bad request:", err.Error())
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return nil, err
 	}
