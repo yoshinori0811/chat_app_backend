@@ -3,13 +3,12 @@ driver = mysql
 db_name = chat_app
 user = root
 password = root
-host = db
+host = localhost
 port = 3306
 
 [api]
-; domain = 0.0.0.0
-domain = 43.207.196.172
+domain = localhost
 port = 8080
 
 [fe]
-url = http://192.168.1.19:3000
+url = http://localhost:3000

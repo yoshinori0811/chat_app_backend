@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"time"
+
 	"github.com/yoshinori0811/chat_app/model"
 	"gorm.io/gorm"
 )
@@ -36,9 +38,9 @@ func (sr SessionRepository) DeleteBySessionToken(sessionToken string) error {
 }
 
 func (sr SessionRepository) GetBySessionToken(session *model.Session) error {
-	// session := &model.Session{}
-	sql := `SELECT * FROM sessions WHERE session_token = ? AND expired_at > NOW()`
-	if err := sr.db.Raw(sql, session.SessionToken).First(session).Error; err != nil {
+	now := time.Now()
+	sql := `SELECT * FROM sessions WHERE session_token = ? AND expired_at > ?`
+	if err := sr.db.Raw(sql, session.SessionToken, now).First(session).Error; err != nil {
 		return err
 	}
 	return nil

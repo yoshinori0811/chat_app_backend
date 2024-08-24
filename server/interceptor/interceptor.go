@@ -35,6 +35,7 @@ func (i *Interceptor) ServerStreamSessionInterceptor(
 	info *grpc.StreamServerInfo,
 	handler grpc.StreamHandler,
 ) error {
+	fmt.Printf("Received method: %s\n", info.FullMethod)
 	md, ok := metadata.FromIncomingContext(ss.Context())
 	if !ok {
 		fmt.Println("SessionStreamInterceptor !ok:", md)
@@ -70,6 +71,8 @@ func (i *Interceptor) ServerStreamSessionInterceptor(
 }
 
 func (i *Interceptor) UnarySessionInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	fmt.Printf("Received method: %s\n", info.FullMethod)
+
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		fmt.Println("SessionStreamInterceptor !ok:", md)

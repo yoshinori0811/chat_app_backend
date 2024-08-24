@@ -3,6 +3,7 @@ package db
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/yoshinori0811/chat_app/config"
 	"gorm.io/driver/mysql"
@@ -20,12 +21,39 @@ func NewDB() *gorm.DB {
 		config.Config.DBName,
 	)
 
-	db, err := gorm.Open(mysql.Open(url), &gorm.Config{})
-	if err != nil {
-		log.Fatalln(err)
+	fmt.Println("url: ", url)
+
+	var db *gorm.DB
+	var err error
+
+	for i := 0; i < 10; i++ { // 最大10回再試行
+		db, err = gorm.Open(mysql.Open(url), &gorm.Config{})
+		if err != nil {
+			log.Printf("Failed to connect to DB (attempt %d): %v", i+1, err)
+			time.Sleep(5 * time.Second) // 5秒待ってから再試行
+			continue
+		}
+
+		sqlDB, err := db.DB()
+		if err != nil {
+			log.Printf("Failed to get sql.DB (attempt %d): %v", i+1, err)
+			time.Sleep(5 * time.Second)
+			continue
+		}
+
+		err = sqlDB.Ping()
+		if err == nil {
+			log.Println("Connected to DB!")
+			return db
+		}
+
+		log.Printf("Failed to ping DB (attempt %d): %v", i+1, err)
+		time.Sleep(5 * time.Second) // 5秒待ってから再試行
 	}
-	fmt.Println("Connceted")
-	return db
+
+	log.Fatalln(err)
+
+	return nil
 }
 
 func CloseDB(db *gorm.DB) {

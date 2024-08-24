@@ -96,10 +96,14 @@ func (uc *UserController) Login(w http.ResponseWriter, r *http.Request) {
 	cookie.Value = session.SessionToken
 	cookie.Expires = session.ExpiredAt
 	cookie.Path = "/"
+	// MEMO: Docker化したアプリをローカルで実行する場合Domainを""とする
+	// cookie.Domain = ""
 	cookie.Domain = config.Config.ServerDomain
 	cookie.Secure = true
 	cookie.HttpOnly = true
 	cookie.SameSite = http.SameSiteNoneMode
+
+	fmt.Println("session.SessionToken:", session.SessionToken)
 	http.SetCookie(w, cookie)
 
 	w.WriteHeader(http.StatusOK)
