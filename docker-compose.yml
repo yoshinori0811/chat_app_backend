@@ -16,8 +16,8 @@ services:
       DB_PASSWORD: root
       DB_NAME: chat_app
       TZ: Asia/Tokyo
-    # command: sh -c "/app/migrate && /app/main"
-    command: sh -c "/app/main"
+    command: sh -c "/app/migrate && /app/main"
+    # command: sh -c "/app/main"
     networks:
       - app-network
 
