@@ -16,6 +16,8 @@ type ConfigList struct {
 	DBPort         string
 	ServerDomain   string
 	ServerPort     int
+	CertFile       string
+	KeyFile        string
 	FEUrl          string
 }
 
@@ -37,6 +39,8 @@ func init() {
 		DBPort:         cfg.Section("db").Key("port").String(),
 		ServerDomain:   cfg.Section("api").Key("domain").String(),
 		ServerPort:     cfg.Section("api").Key("port").MustInt(),
+		CertFile:       cfg.Section("api").Key("certFile").String(),
+		KeyFile:        cfg.Section("api").Key("keyFile").String(),
 		FEUrl:          cfg.Section("fe").Key("url").String(),
 	}
 }

@@ -61,8 +61,10 @@ func main() {
 	}
 
 	go func() {
-		if err := http.ListenAndServe(":"+strconv.Itoa(config.Config.ServerPort), nil); err != nil {
-			fmt.Printf("Failed to serve HTTP: %v\n", err)
+		// if err := http.ListenAndServe(":"+strconv.Itoa(config.Config.ServerPort), nil); err != nil {
+		// fmt.Printf("Failed to serve HTTP: %v\n", err)
+		if err := http.ListenAndServeTLS(":"+strconv.Itoa(config.Config.ServerPort), config.Config.CertFile, config.Config.KeyFile, nil); err != nil {
+			fmt.Printf("Failed to serve HTTPS: %v\n", err)
 		}
 		fmt.Println(strconv.Itoa(config.Config.ServerPort))
 	}()

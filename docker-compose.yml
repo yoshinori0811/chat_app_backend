@@ -7,6 +7,8 @@ services:
     ports:
       - "8080:8080"
       - "50051:50051"  # gRPC 通信用
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       - db
     environment:
