@@ -1,27 +1,110 @@
 
-gRPC 環境構築
-・Protocol buffer コンパイラのインストール
-    ・以下のリンクのAssetsから環境に適したzipファイルをダウンロード（windows 64bitの場合は`protoc-xx.x-win64.zip`）
-        ・https://github.com/protocolbuffers/protobuf/releases
-・zipファイルを解凍し、`C:\Program Files\protoc`内に解凍したファイルを格納する
-・環境変数を設定し、パスを通す
-    ・windowsの場合、Pathに`C:\Program Files\protoc\protoc-xx.x-win64\bin`を追加する
-    ※xx.xはダウンロードしたファイルのバージョンの値が入る
-・以下のコマンドを実行し`libprotoc xx.x`が表示されることを確認する
-    `protoc --version`
-・以下のコマンドをプロジェクト直下で実行しGoプラグインを導入する
-```
-go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28
-go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2
-```
+# 概要
+Discord風のチャットアプリです。  
+フレンドとなったユーザーと1対1でのチャットができます。  
+グループを作成し、フレンドを招待することでグループチャットが行えます。
 
-・protoファイルをビルドする
-```
-protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative ./proto/{protoファイル名}.proto
-```
+アプリURL: https://schaty.net
 
-```
-protoc --proto_path=./proto --go_out=./pb --go_opt=paths=source_relative --go-grpc_out=./pb --go-grpc_opt=paths=source_relative ./proto/message.proto
-```
+# 動作イメージ
+<img src="https://raw.github.com/wiki/yoshinori0811/chat_app_backend/images/demo.gif" style="width: 100%;" >
 
-※`./proto/{protoファイル名}.proto`には実行するディレクトリを起点とする相対パスを記載する
+# システム構成図
+<img src="https://raw.github.com/wiki/yoshinori0811/chat_app_backend/images/system_architecture.png" style="width: 75%;">
+
+# 技術スタック
+- フロントエンド
+    - React
+    - grpc-web
+    - tailwind
+    - react-redux
+- バックエンド
+    - Go
+    - Gorm
+    - grpc
+- インフラ
+    - MySQL
+    - Docker
+    - enginx
+    - envoy
+    - aws (EC2, Route53, VPC)
+
+# ディレクトリ構成
+- フロントエンド
+```
+chat_app_frontend
+├─public  // 静的な公開リソースを格納するディレクトリ
+└─src  // ソースコードを格納するディレクトリ
+    ├─app  // react-reduxのストアやグローバルな設定を格納するディレクトリ
+    ├─assets  // 静的なリソースを格納するディレクトリ
+    │  └─images
+    ├─components  // 関数コンポーネントを格納するディレクトリ
+    │  ├─AddRoomMember
+    │  ├─dropDownMenu
+    │  │  └─messageMenu
+    │  ├─home
+    │  │  ├─addFriend
+    │  │  ├─dm
+    │  │  ├─friend
+    │  │  ├─friendList
+    │  │  ├─friendRequestList
+    │  │  └─navbar
+    │  ├─message
+    │  ├─messageContent
+    │  ├─room
+    │  └─sidebar
+    │      ├─dm
+    │      └─room
+    │          └─settingsIcon
+    │              └─modal
+    ├─features  // Redux Toolkitのスライスを格納するディレクトリ
+    ├─hooks  // バックエンドとAPI通信を行うロジックを格納するディレクトリ
+    ├─pb  // gRPCのスキーマから自動生成されたコードを格納するディレクトリ
+    │  └─web
+    │      └─src
+    │          └─proto
+    ├─proto  // gRPCのスキーマを格納するディレクトリ
+    └─types  // ユーザー定義型を格納するディレクトリ
+```
+- バックエンド
+```
+chat_app_backend
+├─config  // 設定ファイルを格納するディレクトリ
+├─controller  // 各エンドポイントで呼び出される処理を格納するディレクトリ
+├─db  // データベースとの接続に関する処理を格納するディレクトリ
+├─middleware  // http通信に関する共通処理を格納するディレクトリ
+├─migrate  // データベースのテーブルを作成処理を格納するディレクトリ
+├─model  // ユーザー定義型を格納するディレクトリ
+│  └─enum  // バックエンドの処理で使用する列挙型を格納するディレクトリ
+├─pb  // gRPCのスキーマから自動生成されたコードを格納するディレクトリ
+├─proto  // gRPCのスキーマを格納するディレクトリ
+├─repository  // データベースのテーブルをCRUD操作する処理を格納するディレクトリ
+├─router  // エンドポイントを記述したファイルを格納するディレクトリ
+├─server  // gRPC通信に関する処理を格納するディレクトリ
+│  ├─interceptor  // gRPC通信に関する共通処理を格納するディレクトリ
+│  └─service  // gRPC通信を行うエンドポイントで呼び出される処理を格納するディレクトリ
+└─usecase  // ビジネスロジックを格納するディレクトリ
+```
+# 工夫した点
+- フロントエンド
+    - チャット画面を表示する際、画面最下部が表示される様に実装しました。
+    - チャット画面上部をスクロールした際、25個目のメッセージが画面に表示された時にメッセージを読み込むように実装しました。
+
+- バックエンド
+    - httpに関する共通処理をミドルウェアとして実装しました。
+    - grpcに関する共通処理をインターセプターとして実装しました。
+
+- インフラ
+    - フロントエンド～バックエンド間の通信をリバースプロキシとすることでクライアントPCから直接バックエンドと通信できないようにしました。
+# 反省点
+- フロントエンド
+    - ディレクトリ構成がうまく設計できなかった。
+    - サーバーストリーミングのロジックを関数コンポーネントに実装している。
+    - エラー処理を実装できていない。
+    - バリデーションを実装できていない。
+
+- バックエンド
+    - クリーンアーキテクチャを意識して実装したが依存性逆転の法則ができていない。
+    - トランザクション処理がusecase層に依存している。（テーブルごとにrepositoryを別けているのだがテーブルを跨いだトランザクション処理がusecase層に依存している）
+    - アクティブなグループチャットとグループチャットを開いているメンバーを1つの構造体で管理しているためスケールアウトができない。
+    - バリデーションを実装できていない。
