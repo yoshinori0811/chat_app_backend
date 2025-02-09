@@ -33,10 +33,6 @@ func NewUserController(uu usecase.UserUsecaseInterface, fu usecase.FriendUsecase
 var decoder = schema.NewDecoder()
 
 func (uc *UserController) SignUp(w http.ResponseWriter, r *http.Request) {
-	// if !checkPOSTMethod(w, r) {
-	// 	return
-	// }
-
 	userReq, err := bindJSON[model.UserSignUpRequest](w, r)
 	if err != nil {
 		fmt.Println(err)
@@ -66,10 +62,6 @@ func (uc *UserController) SignUp(w http.ResponseWriter, r *http.Request) {
 }
 
 func (uc *UserController) Login(w http.ResponseWriter, r *http.Request) {
-	// if !checkPOSTMethod(w, r) {
-	// 	return
-	// }
-
 	userReq, err := bindJSON[model.UserLoginRequest](w, r)
 	if err != nil {
 		fmt.Println(err)
@@ -110,10 +102,6 @@ func (uc *UserController) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (uc *UserController) Logout(w http.ResponseWriter, r *http.Request) {
-	// if !checkPOSTMethod(w, r) {
-	// 	return
-	// }
-
 	// リクエストからCookieを取得
 	cookies := r.Cookies()
 	// 取得したCookieを表示
@@ -176,22 +164,6 @@ func (uc *UserController) SearchUsers(w http.ResponseWriter, r *http.Request) {
 
 	json.NewEncoder(w).Encode(res)
 }
-
-// func checkPOSTMethod(w http.ResponseWriter, r *http.Request) bool {
-// 	if r.Method != http.MethodPost {
-// 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-// 		return false
-// 	}
-// 	return true
-// }
-
-// func checkGETMethod(w http.ResponseWriter, r *http.Request) bool {
-// 	if r.Method != http.MethodGet {
-// 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-// 		return false
-// 	}
-// 	return true
-// }
 
 func bindJSON[T any](w http.ResponseWriter, r *http.Request) (*T, error) {
 	var data T

@@ -66,9 +66,4 @@ func NewRouter(m middleware.MiddlewareInterface, uc controller.UserControllerInt
 	http.HandleFunc("/rooms/{roomUUID}/leave", m.CorsMiddleware(m.AuthMiddleware(&middleware.MethodHandler{
 		Delete: rc.LeaveRoom,
 	})))
-
-	// http.HandleFunc("/ws/rooms/{roomUUID}", m.WebsocketAllowHeaderMiddleware(m.AuthMiddleware(&middleware.MethodHandler{
-	// 	Get: rc.BroadcastMessage,
-	// })))
-
 }

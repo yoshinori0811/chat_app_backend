@@ -19,8 +19,6 @@ func NewRoomMemberRepository(db *gorm.DB) RoomMemberRepositoryInterface {
 	return &RoomMemberRepository{db}
 }
 
-// parameters:
-// -tx: nilの場合、トランザクションを行わない
 func (rr *RoomMemberRepository) Insert(members []model.RoomMember, tx *gorm.DB) error {
 	if tx == nil {
 		if err := rr.db.Select("room_id", "user_id").Create(&members).Error; err != nil {

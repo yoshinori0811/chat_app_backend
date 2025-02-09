@@ -101,7 +101,6 @@ func (uu *userUsecase) Logout(sessionID string) error {
 }
 
 func (uu userUsecase) isEmailExists(email string) error {
-	// storedUser := model.User{}
 	isUser, err := uu.ur.ExistsUserByEmail(email)
 	if err != nil {
 		fmt.Println(err)

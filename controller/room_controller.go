@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"net/http"
 
-	// "github.com/gorilla/websocket"
-
 	"github.com/yoshinori0811/chat_app_backend/model"
 	"github.com/yoshinori0811/chat_app_backend/usecase"
 )

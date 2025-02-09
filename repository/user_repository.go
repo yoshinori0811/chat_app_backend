@@ -27,7 +27,6 @@ func NewUserRepository(db *gorm.DB) UserRepositoryInterface {
 func (ur UserRepository) Insert(user *model.User) error {
 	sql := `INSERT INTO users (name, email, password, uuid) VALUES (?, ?, ?, ?);`
 	if err := ur.db.Exec(sql, user.Name, user.Email, user.Password, user.UUID).Error; err != nil {
-		// if err := ur.db.Create(&user).Error; err != nil {
 		return err
 	}
 	return nil

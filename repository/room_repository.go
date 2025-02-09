@@ -25,8 +25,6 @@ func NewRoomRepository(db *gorm.DB) RoomRepositoryInterface {
 
 func (rr *RoomRepository) Insert(room *model.Room, tx *gorm.DB) error {
 	fmt.Println("before Insert Room: ", room)
-	// sql := `INSERT INTO rooms (uuid, name, admin_user_id) VALUES (?, ?, ?)`
-	// if err := rr.db.Exec(sql, room.UUID, nullIfEmpty(room.Name), nullIfZero(room.AdminUserID)).Scan(&room).Error; err != nil {
 	if err := tx.Select("uuid", "name", "admin_user_id", "type").Create(&room).Error; err != nil {
 		return err
 	}
@@ -42,7 +40,6 @@ func (rr *RoomRepository) GetByUUID(room *model.Room) error {
 	return nil
 }
 
-// TODO: 命名、レスポンスの型を修正する（修正したのでレビューをもらう）
 func (rr RoomRepository) GetUUIDAndNameByRoomMemberUserID(userID uint, roomType uint) ([]model.GetRoomsResponse, error) {
 	var rooms []model.GetRoomsResponse
 	sql := `SELECT r.uuid AS uuid, IFNULL(r.name, "") AS name
